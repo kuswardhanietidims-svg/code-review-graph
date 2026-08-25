@@ -853,7 +853,16 @@ class TestEmbedGraphProviderErrors:
         assert result["status"] == "error"
         assert "Unknown embedding provider" in result["error"]
         assert "moonbase" in result["error"]
-        assert "Valid: local, openai, google, minimax, voyage" in result["error"]
+        assert "Valid: local, openai, google, minimax, orcarouter, voyage" in result["error"]
+
+    def test_missing_orcarouter_env_var_returns_structured_error(self, tmp_path, monkeypatch):
+        (tmp_path / ".code-review-graph").mkdir()
+        monkeypatch.delenv("ORCAROUTER_API_KEY", raising=False)
+        result = docs_module.embed_graph(
+            repo_root=str(tmp_path), provider="orcarouter",
+        )
+        assert result["status"] == "error"
+        assert "ORCAROUTER_API_KEY" in result["error"]
 
     def test_missing_env_vars_return_structured_error(self, tmp_path, monkeypatch):
         (tmp_path / ".code-review-graph").mkdir()

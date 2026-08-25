@@ -563,6 +563,11 @@ pip install "code-review-graph[all]"                 # All optional dependencies
 | `CRG_OPENAI_API_KEY` | API key for OpenAI-compatible embeddings | - |
 | `CRG_OPENAI_MODEL` | Model name for OpenAI-compatible embeddings | - |
 | `CRG_OPENAI_DIMENSION` | Pin embedding dimension (v3 models support reduction) | - |
+| `ORCAROUTER_API_KEY` | API key for OrcaRouter embeddings | - |
+| `CRG_ORCAROUTER_MODEL` | Model name for OrcaRouter embeddings | `openai/text-embedding-3-small` |
+| `CRG_ORCAROUTER_BASE_URL` | OrcaRouter embeddings endpoint | `https://api.orcarouter.ai/v1` |
+| `CRG_ORCAROUTER_DIMENSION` | Pin embedding dimension for OrcaRouter | - |
+| `CRG_ORCAROUTER_BATCH_SIZE` | Batch size for OrcaRouter embedding requests | `100` |
 | `NO_COLOR` | If set, disables ANSI colors in terminal | - |
 | `CRG_SERIAL_PARSE` | If `1`, disables parallel parsing (use for debugging) | - |
 
@@ -591,6 +596,22 @@ export VOYAGE_API_KEY=pa-...
 export CRG_ACCEPT_CLOUD_EMBEDDINGS=1
 code-review-graph embed --provider voyage --model voyage-code-3
 ```
+
+OrcaRouter embeddings need no extra install. Set `ORCAROUTER_API_KEY` and pass
+`provider="orcarouter"` to `embed_graph`; it defaults to
+`https://api.orcarouter.ai/v1` with model `openai/text-embedding-3-small`:
+
+```bash
+export ORCAROUTER_API_KEY=sk-orca-...
+export CRG_ACCEPT_CLOUD_EMBEDDINGS=1
+code-review-graph embed --provider orcarouter --model openai/text-embedding-3-small
+```
+
+OrcaRouter is an OpenAI-compatible AI gateway: the same endpoint that routes
+chat models also serves hosted open-source and vendor embedding models with one
+API key, so you can use any embedding model it exposes (e.g.
+`google/gemini-embedding-001`, `openai/text-embedding-3-large`) via
+`CRG_ORCAROUTER_MODEL` or the `--model` flag.
 
 > **Model selection tip.** Avoid `-preview` / `-beta` / `-exp` model IDs
 > (e.g. `google/gemini-embedding-2-preview`) for anything you plan to keep

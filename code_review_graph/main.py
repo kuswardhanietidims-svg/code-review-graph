@@ -341,7 +341,8 @@ def semantic_search_nodes_tool(
 
     Uses vector embeddings for semantic search when available (run embed_graph_tool
     first, with a provider of your choice: "local" needs sentence-transformers,
-    "openai" / "google" / "minimax" / "voyage" need their respective env vars).
+    "openai" / "google" / "minimax" / "orcarouter" / "voyage" need their
+    respective env vars).
     Falls back to FTS5 / keyword matching when no matching embeddings exist for
     the given provider.
 
@@ -354,8 +355,8 @@ def semantic_search_nodes_tool(
                during embed_graph. Falls back to CRG_EMBEDDING_MODEL env var
                (local), CRG_OPENAI_MODEL (openai), or CRG_VOYAGE_MODEL (voyage).
         provider: Embedding provider: "local" (default), "openai", "google",
-                  "minimax", or "voyage". Must match the provider used during
-                  embed_graph.
+                  "minimax", "orcarouter", or "voyage". Must match the provider
+                  used during embed_graph.
         detail_level: "standard" for full output, "minimal" for compact summary. Default: standard.
     """
     root = _resolve_repo_root(repo_root)
@@ -395,10 +396,15 @@ async def embed_graph_tool(
                model ID; for voyage: Voyage model ID (e.g. "voyage-code-3").
                Falls back to CRG_EMBEDDING_MODEL / CRG_OPENAI_MODEL /
                CRG_VOYAGE_MODEL env vars as appropriate.
-        provider: "local" (default), "openai", "google", "minimax", or "voyage".
+        provider: "local" (default), "openai", "google", "minimax",
+                  "orcarouter", or "voyage".
                   "openai" requires CRG_OPENAI_BASE_URL + CRG_OPENAI_API_KEY +
                   CRG_OPENAI_MODEL env vars and accepts any OpenAI-compatible
                   endpoint (real OpenAI, Azure, new-api, LiteLLM, vLLM, etc.).
+                  "orcarouter" requires ORCAROUTER_API_KEY and defaults to
+                  https://api.orcarouter.ai/v1 with model
+                  openai/text-embedding-3-small unless a model arg or
+                  CRG_ORCAROUTER_MODEL is supplied.
                   "voyage" requires VOYAGE_API_KEY and defaults to voyage-code-3
                   unless a model arg or CRG_VOYAGE_MODEL is supplied.
     """
