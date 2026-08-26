@@ -16,7 +16,6 @@ from code_review_graph.embeddings import (
     LocalEmbeddingProvider,
     MiniMaxEmbeddingProvider,
     OpenAIEmbeddingProvider,
-    OrcaRouterEmbeddingProvider,
     VoyageEmbeddingProvider,
     _cosine_similarity,
     _decode_vector,
@@ -330,7 +329,7 @@ class TestGetProviderValidation:
             get_provider("moonbase")
         msg = str(exc_info.value)
         assert "moonbase" in msg
-        assert "Valid: local, openai, google, minimax, orcarouter, voyage" in msg
+        assert "Valid: local, openai, google, minimax, voyage" in msg
 
     def test_case_and_whitespace_normalized_for_openai(self):
         """'  OPENAI ' must route to the openai branch (and fail on its
@@ -817,72 +816,6 @@ class TestGetProviderVoyage:
         assert isinstance(provider, VoyageEmbeddingProvider)
         assert provider.name == (
             "voyage:voyage-code-3:dim1024:float@https://api.voyageai.com/v1"
-        )
-
-
-class TestGetProviderOrcaRouter:
-    """Tests for get_provider() with OrcaRouter."""
-
-    def test_get_provider_orcarouter_with_key(self):
-        env = {
-            "ORCAROUTER_API_KEY": "test-key",
-            "CRG_ACCEPT_CLOUD_EMBEDDINGS": "1",
-        }
-        with patch.dict(os.environ, env, clear=False):
-            provider = get_provider("orcarouter")
-
-        assert isinstance(provider, OrcaRouterEmbeddingProvider)
-        assert provider.name == (
-            "orcarouter:openai/text-embedding-3-small@https://api.orcarouter.ai/v1"
-        )
-
-    def test_get_provider_orcarouter_without_key_raises(self):
-        with patch.dict(os.environ, {}, clear=True):
-            with pytest.raises(ValueError, match="ORCAROUTER_API_KEY"):
-                get_provider("orcarouter")
-
-    def test_get_provider_orcarouter_respects_env_configuration(self):
-        env = {
-            "ORCAROUTER_API_KEY": "test-key",
-            "CRG_ORCAROUTER_MODEL": "google/gemini-embedding-001",
-            "CRG_ORCAROUTER_BASE_URL": "https://orcarouter.example.test/v1",
-            "CRG_ORCAROUTER_DIMENSION": "768",
-            "CRG_ACCEPT_CLOUD_EMBEDDINGS": "1",
-        }
-        with patch.dict(os.environ, env, clear=False):
-            provider = get_provider("orcarouter")
-
-        assert isinstance(provider, OrcaRouterEmbeddingProvider)
-        assert provider.name == (
-            "orcarouter:google/gemini-embedding-001@https://orcarouter.example.test/v1"
-        )
-
-    def test_get_provider_orcarouter_model_arg_overrides_env(self):
-        env = {
-            "ORCAROUTER_API_KEY": "test-key",
-            "CRG_ORCAROUTER_MODEL": "openai/text-embedding-3-small",
-            "CRG_ACCEPT_CLOUD_EMBEDDINGS": "1",
-        }
-        with patch.dict(os.environ, env, clear=False):
-            provider = get_provider("orcarouter", model="openai/text-embedding-3-large")
-
-        assert isinstance(provider, OrcaRouterEmbeddingProvider)
-        assert provider.name == (
-            "orcarouter:openai/text-embedding-3-large@https://api.orcarouter.ai/v1"
-        )
-
-    def test_get_provider_orcarouter_ignores_local_embedding_model_env(self):
-        env = {
-            "ORCAROUTER_API_KEY": "test-key",
-            "CRG_EMBEDDING_MODEL": "local-only-model",
-            "CRG_ACCEPT_CLOUD_EMBEDDINGS": "1",
-        }
-        with patch.dict(os.environ, env, clear=False):
-            provider = get_provider("orcarouter")
-
-        assert isinstance(provider, OrcaRouterEmbeddingProvider)
-        assert provider.name == (
-            "orcarouter:openai/text-embedding-3-small@https://api.orcarouter.ai/v1"
         )
 
 

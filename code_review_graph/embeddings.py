@@ -7,8 +7,6 @@ Supports multiple providers:
 4. OpenAI-compatible - Any endpoint speaking OpenAI /v1/embeddings (real OpenAI,
    Azure OpenAI, self-hosted gateways like new-api / LiteLLM / vLLM / LocalAI / Ollama).
 5. Voyage AI - Code retrieval embeddings via the Voyage embeddings API.
-6. OrcaRouter - OpenAI-compatible gateway (https://api.orcarouter.ai/v1) with
-   hosted open-source and vendor embedding models. Requires ORCAROUTER_API_KEY.
 """
 
 from __future__ import annotations
@@ -825,48 +823,7 @@ class VoyageEmbeddingProvider(EmbeddingProvider):
         )
 
 
-class OrcaRouterEmbeddingProvider(OpenAIEmbeddingProvider):
-    """OrcaRouter embedding provider.
-
-    OrcaRouter (https://www.orcarouter.ai) is an OpenAI-compatible AI gateway:
-    the same endpoint that routes chat models also serves hosted open-source and
-    vendor embedding models (e.g. ``openai/text-embedding-3-small``) with one
-    API key. It works with any model the gateway exposes for
-    ``/v1/embeddings``.
-
-    Uses the OpenAI-compatible wire protocol directly, so it inherits the
-    endpoint-aware identity and retry behavior of
-    :class:`OpenAIEmbeddingProvider`.
-    """
-
-    _DEFAULT_BASE_URL = "https://api.orcarouter.ai/v1"
-    _DEFAULT_MODEL = "openai/text-embedding-3-small"
-    _DEFAULT_BATCH_SIZE = 100
-
-    def __init__(
-        self,
-        api_key: str,
-        base_url: str | None = None,
-        model: str | None = None,
-        dimension: int | None = None,
-        timeout: int = 120,
-        batch_size: int | None = None,
-    ) -> None:
-        self._api_key = api_key
-        self._base_url = (base_url or self._DEFAULT_BASE_URL).rstrip("/")
-        self._model = model or self._DEFAULT_MODEL
-        self._requested_dimension = dimension
-        self._dimension = dimension
-        self._timeout = timeout
-        self._batch_size = batch_size or self._DEFAULT_BATCH_SIZE
-        self._host_key = self._make_host_key(self._base_url)
-
-    @property
-    def name(self) -> str:
-        return f"orcarouter:{self._model}@{self._host_key}"
-
-
-CLOUD_PROVIDERS = {"google", "minimax", "openai", "orcarouter", "voyage"}
+CLOUD_PROVIDERS = {"google", "minimax", "openai", "voyage"}
 
 
 def _is_localhost_url(url: str) -> bool:
@@ -909,7 +866,7 @@ def _warn_cloud_egress(provider_name: str) -> None:
     )
 
 
-_VALID_PROVIDERS = {"local", "openai", "google", "minimax", "orcarouter", "voyage"}
+_VALID_PROVIDERS = {"local", "openai", "google", "minimax", "voyage"}
 
 
 def get_provider(
@@ -920,21 +877,17 @@ def get_provider(
 
     Args:
         provider: Provider name. One of "local", "google", "minimax",
-                  "openai", "orcarouter", "voyage", or None. When omitted,
-                  configured OpenAI-compatible credentials select OpenAI;
-                  otherwise the local provider is used. Names are
-                  case-insensitive and surrounding whitespace is ignored;
-                  unknown names raise ValueError instead of silently falling
-                  back to the local provider. Google requires GOOGLE_API_KEY
-                  env var and explicit opt-in. MiniMax requires MINIMAX_API_KEY
-                  env var and explicit opt-in. Voyage requires VOYAGE_API_KEY.
-                  OpenAI requires CRG_OPENAI_API_KEY + CRG_OPENAI_BASE_URL +
-                  CRG_OPENAI_MODEL env vars (or the ``model`` arg). OrcaRouter
-                  requires ORCAROUTER_API_KEY and defaults to
-                  https://api.orcarouter.ai/v1 with model
-                  openai/text-embedding-3-small (override via the ``model``
-                  arg or CRG_ORCAROUTER_MODEL). The egress warning is skipped
-                  when the base URL points to localhost.
+                  "openai", "voyage", or None. When omitted, configured
+                  OpenAI-compatible credentials select OpenAI; otherwise the
+                  local provider is used. Names are case-insensitive and
+                  surrounding whitespace is ignored; unknown names raise
+                  ValueError instead of silently falling back to the local
+                  provider. Google requires GOOGLE_API_KEY env var and explicit
+                  opt-in. MiniMax requires MINIMAX_API_KEY env var and explicit
+                  opt-in. Voyage requires VOYAGE_API_KEY. OpenAI requires
+                  CRG_OPENAI_API_KEY + CRG_OPENAI_BASE_URL + CRG_OPENAI_MODEL
+                  env vars (or the ``model`` arg). The egress warning is
+                  skipped when the base URL points to localhost.
                   Cloud providers emit a one-time stderr warning before use
                   unless ``CRG_ACCEPT_CLOUD_EMBEDDINGS=1`` is set. See: #174
         model: Model name/path to use. For local provider this is any
@@ -943,7 +896,6 @@ def get_provider(
                For Google provider this is a Gemini model ID.
                For OpenAI provider this overrides CRG_OPENAI_MODEL.
                For Voyage provider this overrides CRG_VOYAGE_MODEL.
-               For OrcaRouter provider this overrides CRG_ORCAROUTER_MODEL.
 
     Raises:
         ValueError: If the provider name is not one of the known providers,
@@ -953,7 +905,7 @@ def get_provider(
     if name and name not in _VALID_PROVIDERS:
         raise ValueError(
             f"Unknown embedding provider '{name}'. "
-            "Valid: local, openai, google, minimax, orcarouter, voyage"
+            "Valid: local, openai, google, minimax, voyage"
         )
 
     # When no explicit provider is given but OpenAI-compatible env vars are
@@ -990,36 +942,6 @@ def get_provider(
         if not _is_localhost_url(base_url):
             _warn_cloud_egress("openai")
         return OpenAIEmbeddingProvider(
-            api_key=api_key,
-            base_url=base_url,
-            model=resolved_model,
-            dimension=dimension,
-            batch_size=batch_size,
-        )
-
-    if name == "orcarouter":
-        api_key = os.environ.get("ORCAROUTER_API_KEY")
-        if not api_key:
-            raise ValueError(
-                "ORCAROUTER_API_KEY environment variable is required for "
-                "the OrcaRouter embedding provider."
-            )
-        base_url = (
-            os.environ.get("CRG_ORCAROUTER_BASE_URL")
-            or OrcaRouterEmbeddingProvider._DEFAULT_BASE_URL
-        )
-        resolved_model = (
-            model
-            or os.environ.get("CRG_ORCAROUTER_MODEL")
-            or OrcaRouterEmbeddingProvider._DEFAULT_MODEL
-        )
-        dim_env = os.environ.get("CRG_ORCAROUTER_DIMENSION")
-        dimension = int(dim_env) if dim_env else None
-        batch_env = os.environ.get("CRG_ORCAROUTER_BATCH_SIZE")
-        batch_size = int(batch_env) if batch_env else None
-        if not _is_localhost_url(base_url):
-            _warn_cloud_egress("orcarouter")
-        return OrcaRouterEmbeddingProvider(
             api_key=api_key,
             base_url=base_url,
             model=resolved_model,

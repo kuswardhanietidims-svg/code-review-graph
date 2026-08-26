@@ -102,7 +102,7 @@ kind: str | None     # File, Class, Function, Type, Test
 limit: int = 20
 repo_root: str | None
 model: str | None    # Embedding model (falls back to provider-specific env vars)
-provider: str | None # local, openai, google, minimax, orcarouter, voyage
+provider: str | None # local, openai, google, minimax, voyage
 detail_level: str = "standard"
 ```
 
@@ -110,7 +110,7 @@ detail_level: str = "standard"
 ```
 repo_root: str | None
 model: str | None    # Embedding model name
-provider: str | None # local, openai, google, minimax, orcarouter, voyage
+provider: str | None # local, openai, google, minimax, voyage
 ```
 Local embeddings require: `pip install "code-review-graph[embeddings]"`. Cloud providers use stdlib HTTP clients and require their provider environment variables.
 
